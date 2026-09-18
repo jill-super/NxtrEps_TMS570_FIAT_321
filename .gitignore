@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------
+# Build artefacts of the Astro/Starlight documentation site (docs/).
+# The site sources (docs/package.json, docs/astro.config.mjs, docs/src/ …)
+# are tracked; everything regenerable via `npm install` / `npm run build`
+# inside docs/ is ignored so forks and clones stay small.
+# ---------------------------------------------------------------------------
+docs/node_modules/
+docs/dist/
+docs/.astro/
+
+# Python bytecode / virtualenvs (host-side helper scripts only)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~

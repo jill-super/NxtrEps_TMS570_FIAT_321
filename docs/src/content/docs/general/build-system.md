@@ -1,0 +1,308 @@
+---
+title: "Build system"
+description: "Compilers, generators and scripts: CCS project, DaVinci/MICROSAR generation, batch integration."
+---
+
+
+# Build system
+
+There are **no Makefiles or CMake files** in the repository — the build is driven by the TI Code Composer Studio (CCS) ECU project plus Vector generator batch files. Key facts:
+
+- **ECU project:** `Fiasa_326_327_EPS_TMS570/SwProject/` — application sources, generated RTE/BSW (`Source/GenData*`), linker command file (`TMS570LS202x6SFlashLnk.cmd`), CCS target configuration (`Fiasa.ccxml`), `postbuild.bat`, and per-submodule folders (`CDDInterface`, `CMS_Fiasa`, `ChkPt`, `DemIf`, `DiagSvc`, `IoHwAbstractionUsr`, `SrlComInput`, `SrlComOutput`, `VehPwrMd`, …).
+- **RTE/BSW generation:** each software-component module ships `autosar/` (DaVinci model) and `generate/*.tt` templates; `tools/Integrate.bat` and `tools/RteGen.bat` invoke the Vector MICROSAR RTE Generator (2.17.2 per the checked-in transcripts, e.g. `StabilityComp/tools/logfile.txt`). Generator outputs land in the ECU project `GenData`/`GenDataRte`/`GenDataOS` folders.
+- **BSW stack:** `Fiasa_326_327_EPS_TMS570/SwProject/Source/BSW/` holds the configured Vector MICROSAR modules (`Can`, `CanIf`, `Com`, `Dcm`, `Dem`, `EcuM`, `NvM`, `Os`, `Xcp`, …) — Vector-provided, configured via DaVinci; see the [Vector MICROSAR stack](./../bsw/vector-microsar-stack/) reference.
+- **Memory stack:** TI FEE (`Fee/`) + F021 Flash API (`Fls/`, prebuilt `.lib`), wrapped by Nexteer `NvMMgr` (`Cd_FeeIf`) / `NvMProxy`.
+- **Static analysis:** QA-C projects per module (`tools/QAC*`) plus shared `QAC/` configuration; results archived under each `doc/QAC_Results/`.
+- **Unit testing:** Tessy projects under `utp/` with Vector-generated RTE contract stubs.
+
+## Rebuild sketch (high level)
+
+1. Install TI CCS + Hercules support, DaVinci Configurator + MICROSAR (licensed, Vector).
+2. Run the module `RteGen`/`Integrate` steps to regenerate RTE/BSW into the ECU project `GenData*`.
+3. Open the CCS project (`Fiasa.ccxml`, `TMS570LS202x6SFlashLnk.cmd`) and build the `SwProject`.
+4. `postbuild.bat` performs the post-link steps; flash the image to the TMS570.
+
+<details>
+<summary>Build-related files found in the repository (factual list)</summary>
+
+
+- `AbsHwPos_TcI2cVd/generate/Ap_AbsHwPos_Generate.bat`
+- `AbsHwPos_TcI2cVd/tools/Integrate.bat`
+- `AbsHwPos_TcI2cVd/tools/RteGen.bat`
+- `ActivePull/generate/Ap_ActivePull_Generate.bat`
+- `ActivePull/tools/Integrate.bat`
+- `ActivePull/tools/RteGen.bat`
+- `Assist/generate/Ap_Assist_Generate.bat`
+- `Assist/tools/Integrate.bat`
+- `Assist/tools/RteGen.bat`
+- `AssistFirewall/generate/Ap_AssistFirewall_Generate.bat`
+- `AssistFirewall/tools/Integrate.bat`
+- `AssistFirewall/tools/RteGen.bat`
+- `AstLmt_CM/generate/Ap_AstLmt_Generate.bat`
+- `AstLmt_CM/tools/Integrate.bat`
+- `AstLmt_CM/tools/RteGen.bat`
+- `AvgFricLrn/generate/Ap_AvgFricLrn_Generate.bat`
+- `AvgFricLrn/tools/Integrate.bat`
+- `AvgFricLrn/tools/RteGen.bat`
+- `BVDiag/generate/Ap_BVDiag_Generate.bat`
+- `BVDiag/tools/Integrate.bat`
+- `BVDiag/tools/RteGen.bat`
+- `BatteryVoltage/generate/Ap_BatteryVoltage_Generate.bat`
+- `BatteryVoltage/tools/Integrate.bat`
+- `BatteryVoltage/tools/RteGen.bat`
+- `BkCpPc/generate/Sa_BkCpPc_Generate.bat`
+- `BkCpPc/tools/Integrate.bat`
+- `BkCpPc/tools/RteGen.bat`
+- `CmMtrCurr/generate/Sa_CmMtrCurr_Generate.bat`
+- `CmMtrCurr/tools/Integrate.bat`
+- `CmMtrCurr/tools/RteGen.bat`
+- `ComplErr/generate/Ap_ComplErr_Generate.bat`
+- `ComplErr/tools/Integrate.bat`
+- `ComplErr/tools/RteGen.bat`
+- `CtrlTemp/generate/Sa_CtrlTemp_Generate.bat`
+- `CtrlTemp/tools/Integrate.bat`
+- `CtrlTemp/tools/RteGen.bat`
+- `CtrldDisShtdn/generate/Ap_CtrldDisShtdn_Generate.bat`
+- `CtrldDisShtdn/tools/Integrate.bat`
+- `CtrldDisShtdn/tools/RteGen.bat`
+- `Damping/generate/Ap_Damping_Generate.bat`
+- `Damping/tools/Integrate.bat`
+- `Damping/tools/RteGen.bat`
+- `DampingFirewall/generate/Ap_DampingFirewall_Generate.bat`
+- `DampingFirewall/tools/Integrate.bat`
+- `DampingFirewall/tools/RteGen.bat`
+- `DiagMgr/generate/DiagMgr_Generate.bat`
+- `DiagMgr/tools/Integrate.bat`
+- `DigColPs/generate/Sa_DigColPs_Generate.bat`
+- `DigColPs/tools/Integrate.bat`
+- `DigColPs/tools/RteGen.bat`
+- `DigHwTrqSENT/generate/Sa_DigHwTrqSENT_Generate.bat`
+- `DigHwTrqSENT/tools/Integrate.bat`
+- `DigHwTrqSENT/tools/RteGen.bat`
+- `DigMSB/generate/Sa_DigMSB_Generate.bat`
+- `DigMSB/tools/Integrate.bat`
+- `DigMSB/tools/RteGen.bat`
+- `EOTActuatorMng/generate/Ap_EOTActuatorMng_Generate.bat`
+- `EOTActuatorMng/tools/Integrate.bat`
+- `EOTActuatorMng/tools/RteGen.bat`
+- `ElePwr/generate/Ap_ElePwr_Generate.bat`
+- `ElePwr/tools/Integrate.bat`
+- `ElePwr/tools/RteGen.bat`
+- `EtDmpFw/generate/Ap_EtDmpFw_Generate.bat`
+- `EtDmpFw/tools/Integrate.bat`
+- `EtDmpFw/tools/RteGen.bat`
+- `Fee/tools/Integrate.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/.cproject`
+- `Fiasa_326_327_EPS_TMS570/SwProject/.project`
+- `Fiasa_326_327_EPS_TMS570/SwProject/CDDInterface/tools/RteGen.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/Fiasa.ccxml`
+- `Fiasa_326_327_EPS_TMS570/SwProject/Source/BSW/Os/vrm.inc`
+- `Fiasa_326_327_EPS_TMS570/SwProject/Source/GenDataOS/osobjs.inc`
+- `Fiasa_326_327_EPS_TMS570/SwProject/Source/GenDataOS/osobjs_init.inc`
+- `Fiasa_326_327_EPS_TMS570/SwProject/Source/GenDataOS/tcb.inc`
+- `Fiasa_326_327_EPS_TMS570/SwProject/SrlComInput/tools/RteGen.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/SrlComOutput/tools/RteGen.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/T1_Fast.inc`
+- `Fiasa_326_327_EPS_TMS570/SwProject/TMS570LS202x6SFlashLnk.cmd`
+- `Fiasa_326_327_EPS_TMS570/SwProject/VehPwrMd/generate/Ap_VehPwrMd_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/VehPwrMd/tools/Integrate.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/VehPwrMd/tools/RteGen.bat`
+- `Fiasa_326_327_EPS_TMS570/SwProject/postbuild.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/AbsHwPos/Ap_AbsHwPos_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ActivePull/Ap_ActivePull_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ApXcp/Ap_ApXcp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Assist/Ap_Assist_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/AssistFirewall/Ap_AssistFirewall_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/AstLmt/Ap_AstLmt_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/AvgFricLrn/Ap_AvgFricLrn_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/BVDiag/Ap_BVDiag_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/BatteryVoltage/Ap_BatteryVoltage_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/BkCpPc/Sa_BkCpPc_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/CmMtrCurr/Sa_CmMtrCurr_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ComplErr/Ap_ComplErr_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/CtrlTemp/Sa_CtrlTemp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/CtrldDisShtdn/Ap_CtrldDisShtdn_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/CurrCmd/Ap_CurrCmd_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/CurrParamComp/Ap_CurrParamComp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Damping/Ap_Damping_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/DampingFirewall/Ap_DampingFirewall_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/DiagMgr/DiagMgr_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/DigColPs/Sa_DigColPs_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/DigHwTrqSENT/Sa_DigHwTrqSENT_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/DigMSB/Sa_DigMSB_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/DigPhsReasDiag/Ap_DigPhsReasDiag_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/EOTActuatorMng/Ap_EOTActuatorMng_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ElePwr/Ap_ElePwr_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/EtDmpFw/Ap_EtDmpFw_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/FlsTst/FlsTst_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/FrqDepDmpnInrtCmp/Ap_FrqDepDmpnInrtCmp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Gsod/Ap_Gsod_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/HiLoadStall/Ap_HiLoadStall_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/HighFreqAssist/Ap_HighFreqAssist_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/HwPwUp/Ap_HwPwUp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/HystComp/Ap_HystComp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/LmtCod/Ap_LmtCod_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/LrnEOT/Ap_LrnEOT_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/MtrDrvDiag/Sa_MtrDrvDiag_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/MtrTempEst/Ap_MtrTempEst_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/MtrVel/Sa_MtrVel_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/MtrVel2/Sa_MtrVel2_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/NvMMgr/Cd_NvMMgr_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/NvMProxy/Cd_NvMProxy_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/OvrVoltMon/Sa_OvrVoltMon_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/PICurrCntrl/Ap_PICurrCntrl_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/PeakCurrEst/Ap_PeakCurrEst_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Polarity/Ap_Polarity_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/PwrLmtFuncCr/Ap_PwrLmtFuncCr_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/QuadDet/Ap_QuadDet_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Return/Ap_Return_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ReturnFirewall/Ap_ReturnFirewall_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ShtdnMech/Sa_ShtdnMech_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/SignlCondn/Ap_SignlCondn_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/SpiNxt/SpiNxt_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/StOpCtrl/Ap_StOpCtrl_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/StaMd/Ap_StaMd_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/StabilityComp/Ap_StabilityComp_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/StabilityComp2/Ap_StabilityComp2_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Sweep/Ap_Sweep_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/Sweep2/Ap_Sweep2_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/ThrmDutyCycle/Ap_ThrmlDutyCycle_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/TmprlMon/Sa_TmprlMon_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/TmprlMon2/Sa_TmprlMon2_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/TqRsDg/Ap_TqRsDg_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/TrqCanc/Ap_TrqCanc_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/TrqCmdScl/Ap_TrqCmdScl_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/TuningSelAuth/Ap_TuningSelAuth_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/VehDyn/Ap_VehDyn_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/VehPwrMd/Ap_VehPwrMd_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/VehSpdLmt/Ap_VehSpdLmt_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/WdgM/WdgM_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/artt/AddSswcCertificate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Artt/uDiag/uDiag_Generate.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Components/Bat/init.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Components/Bat/start.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Os/Os_gen.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/AsrProject/Generators/Os/startTimingAnalyzer.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/GliwaT1/Overlay/Fiasa_326_327_EPS_TMS570/SwProject/T1_Fast.inc`
+- `Fiasa_326_327_EPS_TMS570/Tools/GliwaT1/Overlay/Haitec_LC_EPS_TMS570/SwProject/T1_Fast.inc`
+- `Fiasa_326_327_EPS_TMS570/Tools/GliwaT1/PerformIntegration.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/GliwaT1/RemoveIntegration.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/OilTool/GenerateOil.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/Patch/Os_patch.bat`
+- `Fiasa_326_327_EPS_TMS570/Tools/Patch/diff/Os/Os_diff.bat`
+- `FrqDepDmpnInrtCmp/generate/Ap_FrqDepDmpnInrtCmp_Generate.bat`
+- `FrqDepDmpnInrtCmp/tools/Integrate.bat`
+- `FrqDepDmpnInrtCmp/tools/RteGen.bat`
+- `GliwaT1/utp/Example_Tools_GliwaT1/PerformIntegration.bat`
+- `GliwaT1/utp/Example_Tools_GliwaT1/RemoveIntegration.bat`
+- `Gsod/generate/Ap_Gsod_Generate.bat`
+- `Gsod/tools/Integrate.bat`
+- `Gsod/tools/RteGen.bat`
+- `HiLoadStall/generate/Ap_HiLoadStall_Generate.bat`
+- `HiLoadStall/tools/Integrate.bat`
+- `HiLoadStall/tools/RteGen.bat`
+- `HighFreqAssist/generate/Ap_HighFreqAssist_Generate.bat`
+- `HighFreqAssist/tools/Integrate.bat`
+- `HighFreqAssist/tools/RteGen.bat`
+- `HwPwUp/generate/Ap_HwPwUp_Generate.bat`
+- `HwPwUp/tools/Integrate.bat`
+- `HwPwUp/tools/RteGen.bat`
+- `HystComp/generate/Ap_HystComp_Generate.bat`
+- `HystComp/tools/Integrate.bat`
+- `HystComp/tools/RteGen.bat`
+- `LmtCod/generate/Ap_LmtCod_Generate.bat`
+- `LmtCod/tools/Integrate.bat`
+- `LmtCod/tools/RteGen.bat`
+- `LrnEOT/generate/Ap_LrnEOT_Generate.bat`
+- `LrnEOT/tools/Integrate.bat`
+- `LrnEOT/tools/RteGen.bat`
+- `MtrCtrl_CM/generate/Ap_CurrCmd_Generate.bat`
+- `MtrCtrl_CM/generate/Ap_CurrParamComp_Generate.bat`
+- `MtrCtrl_CM/generate/Ap_PICurrCntrl_Generate.bat`
+- `MtrCtrl_CM/generate/Ap_PeakCurrEst_Generate.bat`
+- `MtrCtrl_CM/generate/Ap_QuadDet_Generate.bat`
+- `MtrCtrl_CM/generate/Ap_TrqCanc_Generate.bat`
+- `MtrCtrl_CM/generate/Ap_TrqCmdScl_Generate.bat`
+- `MtrCtrl_CM/tools/Integrate.bat`
+- `MtrCtrl_CM/tools/RteGen.bat`
+- `MtrTempEst/generate/Ap_MtrTempEst_Generate.bat`
+- `MtrTempEst/tools/Integrate.bat`
+- `MtrTempEst/tools/RteGen.bat`
+- `MtrVel_Digi/generate/Sa_MtrVel2_Generate.bat`
+- `MtrVel_Digi/generate/Sa_MtrVel_Generate.bat`
+- `MtrVel_Digi/tools/Integrate.bat`
+- `MtrVel_Digi/tools/RteGen.bat`
+- `NvMMgr/generate/Cd_NvMMgr_Generate.bat`
+- `NvMMgr/tools/Integrate.bat`
+- `NvMProxy/generate/Cd_NvMProxy_Generate.bat`
+- `NvMProxy/tools/Integrate.bat`
+- `OvrVoltMon/generate/Sa_OvrVoltMon_Generate.bat`
+- `OvrVoltMon/tools/Integrate.bat`
+- `OvrVoltMon/tools/RteGen.bat`
+- `Polarity/generate/Ap_Polarity_Generate.bat`
+- `Polarity/tools/Integrate.bat`
+- `Polarity/tools/RteGen.bat`
+- `PwrLmtFuncCr/generate/Ap_PwrLmtFuncCr_Generate.bat`
+- `PwrLmtFuncCr/tools/Integrate.bat`
+- `PwrLmtFuncCr/tools/RteGen.bat`
+- `Return/generate/Ap_Return_Generate.bat`
+- `Return/tools/Integrate.bat`
+- `Return/tools/RteGen.bat`
+- `ReturnFirewall/generate/Ap_ReturnFirewall_Generate.bat`
+- `ReturnFirewall/tools/Integrate.bat`
+- `ReturnFirewall/tools/RteGen.bat`
+- `SVDiag/generate/Ap_DigPhsReasDiag_Generate.bat`
+- `SVDiag/generate/Sa_MtrDrvDiag_Generate.bat`
+- `SVDiag/tools/Integrate.bat`
+- `SVDiag/tools/RteGen.bat`
+- `SgnlCond/generate/Ap_SignlCondn_Generate.bat`
+- `SgnlCond/tools/Integrate.bat`
+- `SgnlCond/tools/RteGen.bat`
+- `ShtdnMech/generate/Sa_ShtdnMech_Generate.bat`
+- `ShtdnMech/tools/Integrate.bat`
+- `ShtdnMech/tools/RteGen.bat`
+- `SpiNxt/generate/SpiNxt_Generate.bat`
+- `SpiNxt/tools/Integrate.bat`
+- `StOpCtrl/generate/Ap_StOpCtrl_Generate.bat`
+- `StOpCtrl/tools/Integrate.bat`
+- `StOpCtrl/tools/RteGen.bat`
+- `StaMd/generate/Ap_StaMd_Generate.bat`
+- `StaMd/tools/Integrate.bat`
+- `StabilityComp/generate/Ap_StabilityComp2_Generate.bat`
+- `StabilityComp/generate/Ap_StabilityComp_Generate.bat`
+- `StabilityComp/tools/Integrate.bat`
+- `StabilityComp/tools/RteGen.bat`
+- `Sweep/generate/Ap_Sweep2_Generate.bat`
+- `Sweep/generate/Ap_Sweep_Generate.bat`
+- `Sweep/tools/Integrate.bat`
+- `Sweep/tools/RteGen.bat`
+- `TMS570_uDiag/generate/FlsTst_Generate.bat`
+- `TMS570_uDiag/generate/uDiag_Generate.bat`
+- `TMS570_uDiag/tools/Integrate.bat`
+- `TMS570_uDiag/tools/RteGen.bat`
+- `ThrmDutyCycle/generate/Ap_ThrmlDutyCycle_Generate.bat`
+- `ThrmDutyCycle/tools/Integrate.bat`
+- `ThrmDutyCycle/tools/RteGen.bat`
+- `TmprlMon/generate/Sa_TmprlMon2_Generate.bat`
+- `TmprlMon/generate/Sa_TmprlMon_Generate.bat`
+- `TmprlMon/tools/Integrate.bat`
+- `TmprlMon/tools/RteGen.bat`
+- `TqRsDg/generate/Ap_TqRsDg_Generate.bat`
+- `TqRsDg/tools/Integrate.bat`
+- `TqRsDg/tools/RteGen.bat`
+- `TuningSelAuth/generate/Ap_TuningSelAuth_Generate.bat`
+- `TuningSelAuth/tools/Integrate.bat`
+- `TuningSelAuth/tools/RteGen.bat`
+- `VehDyn/generate/Ap_VehDyn_Generate.bat`
+- `VehDyn/tools/Integrate.bat`
+- `VehDyn/tools/RteGen.bat`
+- `VehSpdLmt/generate/Ap_VehSpdLmt_Generate.bat`
+- `VehSpdLmt/tools/Integrate.bat`
+- `VehSpdLmt/tools/RteGen.bat`
+- `Xcp/generate/Ap_ApXcp_Generate.bat`
+- `Xcp/tools/Integrate.bat`
+- `Xcp/tools/RteGen.bat`
+- `ePWM/tools/Build_Nhet_Prog.bat`
+- `ePWM/tools/RteGen.bat`
+
+</details>
